@@ -52,7 +52,7 @@ class BC_CMS_API extends BC_API {
 	 *
 	 * @param string $name the name of the playlst
 	 * @param string $type the type of playlist (see BC CMS API docs)
-	 * @param array $args Array of other attributes for the playlist
+	 * @param array  $args Array of other attributes for the playlist
 	 *
 	 * @return array|bool Array of playlist data or false if failure
 	 */
@@ -172,11 +172,16 @@ class BC_CMS_API extends BC_API {
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param string $query Keyword Search Query.
 	 * @return array|bool|mixed array of all playlists of false if failure
 	 */
-	public function playlist_list() {
+	public function playlist_list( $query = '' ) {
 
-		$results = $this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/playlists' ) );
+		$url = self::CMS_BASE_URL . $this->get_account_id() . '/playlists';
+		if ( $query ) {
+			$url = add_query_arg( 'q', urlencode( $query ), $url );
+		}
+		$results = $this->send_request( esc_url_raw( $url ) );
 
 		if ( is_array( $results ) ) {
 
@@ -216,7 +221,7 @@ class BC_CMS_API extends BC_API {
 	 * @since 1.0.0
 	 *
 	 * @param string $playlist_id the id of the playlist to update
-	 * @param array $args optional array of other arguments to update in the playlist
+	 * @param array  $args optional array of other arguments to update in the playlist
 	 *
 	 * @return array|bool array of data about the updated playlist or false on failure.
 	 */
@@ -236,7 +241,7 @@ class BC_CMS_API extends BC_API {
 	 * @since 1.0.0
 	 *
 	 * @param string $name the name of the video
-	 * @param array $args optional array of other arguments used in video creation
+	 * @param array  $args optional array of other arguments used in video creation
 	 *
 	 * @return array|bool array of data about the new video or false on failure.
 	 */
@@ -376,11 +381,11 @@ class BC_CMS_API extends BC_API {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param int $limit Number of videos to return - must be an integer between 1 and 100.
-	 * @param int $offset Number of videos to skip (for paging results). Must be a positive integer.
-	 * @param string $query Query terms to search for.
-	 * @param string $sort A string that specifies the field to sort by. Start with - to sort descending.
-	 * @param bool $playable Available at the /videos endpoint.
+	 * @param int         $limit Number of videos to return - must be an integer between 1 and 100.
+	 * @param int         $offset Number of videos to skip (for paging results). Must be a positive integer.
+	 * @param string      $query Query terms to search for.
+	 * @param string      $sort A string that specifies the field to sort by. Start with - to sort descending.
+	 * @param bool        $playable Available at the /videos endpoint.
 	 * @param bool|string $folder_id The folder_id if specified.
 	 *
 	 * @return array|bool array of available videos retrieved or false if error
@@ -460,7 +465,7 @@ class BC_CMS_API extends BC_API {
 			$api_url = self::CMS_BASE_URL . $this->get_account_id() . '/folders/' . $folder_id . '/videos';
 		}
 
-		$url  = add_query_arg(
+		$url = add_query_arg(
 			$args,
 			$api_url
 		);
@@ -475,6 +480,26 @@ class BC_CMS_API extends BC_API {
 				$results[ $index ]['width']  = apply_filters( 'bv_video_default_width', 0 );
 				$results[ $index ]['height'] = apply_filters( 'bv_video_default_height', 0 );
 
+				if ( ! empty( $result['schedule'] ) ) {
+
+					if ( ! empty( $result['schedule']['starts_at'] ) ) {
+						$start_date = date_create( $result['schedule']['starts_at'], new DateTimeZone( 'Europe/London' ) );
+
+						$results[ $index ]['schedule_start_date']   = $start_date ? $start_date->format( 'F d, Y' ) : '';
+						$results[ $index ]['schedule_start_hour']   = $start_date ? $start_date->format( 'h' ) : '';
+						$results[ $index ]['schedule_start_minute'] = $start_date ? $start_date->format( 'i' ) : '';
+						$results[ $index ]['schedule_start_am_pm']  = $start_date ? $start_date->format( 'A' ) : '';
+					}
+
+					if ( ! empty( $result['schedule']['ends_at'] ) ) {
+						$end_date = date_create( $result['schedule']['ends_at'], new DateTimeZone( 'Europe/London' ) );
+
+						$results[ $index ]['schedule_end_date']   = $end_date ? $end_date->format( 'F d, Y' ) : '';
+						$results[ $index ]['schedule_end_hour']   = $end_date ? $end_date->format( 'h' ) : '';
+						$results[ $index ]['schedule_end_minute'] = $end_date ? $end_date->format( 'i' ) : '';
+						$results[ $index ]['schedule_end_am_pm']  = $end_date ? $end_date->format( 'A' ) : '';
+					}
+				}
 			}
 		}
 
@@ -490,7 +515,7 @@ class BC_CMS_API extends BC_API {
 	 * @since 1.0.0
 	 *
 	 * @param string $video_id the id of the video to update
-	 * @param array $args optional array of other arguments used in video creation
+	 * @param array  $args optional array of other arguments used in video creation
 	 *
 	 * @return array|bool array of data about the updated video or false on failure.
 	 */
@@ -529,7 +554,7 @@ class BC_CMS_API extends BC_API {
 		 */
 		$profile = apply_filters( 'brightcove_ingest_profile', $profile );
 
-		$data = ( ! empty( $profile ) ) ? array( 'profile' => sanitize_text_field( $profile ) ) : array();
+		$data              = ( ! empty( $profile ) ) ? array( 'profile' => sanitize_text_field( $profile ) ) : array();
 		$data['master']    = array( 'url' => esc_url_raw( $video_url ) );
 		$data['callbacks'] = BC_Notification_API::callback_paths();
 
@@ -543,8 +568,8 @@ class BC_CMS_API extends BC_API {
 	 *
 	 * @param string $video_id Video cloud ID
 	 * @param string $poster_url URL for the video poster image
-	 * @param int [$height]   Pixel height of the image
-	 * @param int [$width]    Pixel width of the image
+	 * @param int [  $height]   Pixel height of the image
+	 * @param int [  $width]    Pixel width of the image
 	 *
 	 * @return string|bool The ingest request ID or false on failure
 	 */
@@ -580,8 +605,8 @@ class BC_CMS_API extends BC_API {
 	 *
 	 * @param string $video_id Video cloud ID
 	 * @param string $thumbnail_url URL for the thumbnail image
-	 * @param int [$height]      Pixel height of the image
-	 * @param int [$width]       Pixel width of the image
+	 * @param int [  $height]      Pixel height of the image
+	 * @param int [  $width]       Pixel width of the image
 	 *
 	 * @return string|bool The ingest request ID or false on failure
 	 */
@@ -611,14 +636,35 @@ class BC_CMS_API extends BC_API {
 	}
 
 	/**
+	 * Update a video variant in the Brightcove Video Cloud.
+	 *
+	 * Updates a video variant with the provided id and optional other data in the video cloud.
+	 *
+	 * @since 2.5.2
+	 *
+	 * @param string $video_id the id of the video to update.
+     * @param string $language the language the variant belongs to.
+	 * @param array  $args optional array of other arguments used in video creation.
+	 *
+	 * @return array|bool array of data about the updated video or false on failure.
+	 */
+	public function variant_update( $video_id, $language, $args = array() ) {
+		$video_id = utf8_uri_encode( sanitize_text_field( $video_id ) );
+
+		$data = BC_Utility::sanitize_payload_args_recursive( $args );
+
+		return $this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/videos/' . $video_id . '/variants/' . $language ), 'PATCH', $data );
+	}
+
+	/**
 	 * Upload a single caption file for processing
 	 *
 	 * Sends a URL of the video's caption file to the Dynamic Ingest API for processing.
 	 *
-	 * @param string $video_id Video cloud ID
-	 * @param string $caption_file_url URL for a WebVTT file
-	 * @param string [$language]       ISO 639 2-letter language code for text tracks
-	 * @param string [$label]          User-readable title
+	 * @param string   $video_id Video cloud ID
+	 * @param string   $caption_file_url URL for a WebVTT file
+	 * @param string [ $language]       ISO 639 2-letter language code for text tracks
+	 * @param string [ $label]          User-readable title
 	 *
 	 * @return string|bool The ingest request ID or false on failure
 	 */
@@ -635,7 +681,7 @@ class BC_CMS_API extends BC_API {
 	 *
 	 * Sends the URLs of various video text track files to the Dynamic Ingest API for processing.
 	 *
-	 * @param string $video_id
+	 * @param string          $video_id
 	 * @param BC_Text_Track[] $text_tracks
 	 *
 	 * @return string|bool The ingest request ID or false on failure
@@ -654,6 +700,39 @@ class BC_CMS_API extends BC_API {
 	}
 
 	/**
+	 * Updates a collection of text tracks for a specific video.
+	 *
+	 * Sends a PATCH request to replace existing text tracks.
+	 *
+	 * @param string          $video_id
+	 * @param BC_Text_Track[] $text_tracks
+	 *
+	 * @return string|bool The request ID or false on failure.
+	 */
+	public function text_track_update( $video_id, $text_tracks ) {
+		$data                = array();
+		$data['text_tracks'] = array();
+		foreach ( $text_tracks as $track ) {
+			$data['text_tracks'][] = $track->toArrayPatch();
+		}
+
+		return $this->send_request( esc_url_raw( self::DI_BASE_URL . $this->get_account_id() . '/videos/' . $video_id ), 'PATCH', $data );
+	}
+
+	/**
+	 * Deletes the existing text tracks by sending an empty JSON text_track array
+	 *
+	 * @param $video_id
+	 * @return string|bool The request ID or false on failure.
+	 */
+	public function text_track_delete( $video_id ) {
+		$data                = array();
+		$data['text_tracks'] = array();
+
+		return $this->send_request( esc_url_raw( self::DI_BASE_URL . $this->get_account_id() . '/videos/' . $video_id ), 'PATCH', $data );
+	}
+
+	/**
 	 * Get a list of custom video fields for the account.
 	 *
 	 * @return array|bool Array of all custom video fields of false if failure
@@ -668,7 +747,7 @@ class BC_CMS_API extends BC_API {
 	 * Subscribe to Brightcove API events
 	 *
 	 * @param string $endpoint
-	 * @param array $events
+	 * @param array  $events
 	 *
 	 * @return string|bool Subscription ID on success, false on failure
 	 */
@@ -711,7 +790,7 @@ class BC_CMS_API extends BC_API {
 	public function fetch_folders() {
 		$cache_key = 'BCFolders_' . $this->get_account_id();
 		$folders   = get_transient( $cache_key );
-		$folders = false;
+		$folders   = false;
 		if ( false === $folders ) {
 			$request = $this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/folders' ) );
 			$folders = array();
@@ -754,5 +833,92 @@ class BC_CMS_API extends BC_API {
 	protected function remove_folder_from_video( $folderId, $videoId ) {
 		$api_url = self::CMS_BASE_URL . $this->get_account_id() . '/folders/' . $folderId . '/videos/' . $videoId;
 		$this->send_request( esc_url_raw( $api_url ), 'DELETE' );
+	}
+
+	/**
+	 * Retrieves a list of the labels associated with the account.
+	 *
+	 * @return mixed A list of labels.
+	 */
+	public function get_account_labels() {
+		$result = $this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/labels/' ), 'GET' );
+		if ( is_wp_error( $result ) || empty( $result['labels'] ) ) {
+			return false;
+		}
+		return $result['labels'];
+	}
+
+	/**
+	 * Adds a label in studio.
+	 *
+	 * @param string $name The label name.
+	 * @param string $path The label path.
+	 * @return mixed The request response.
+	 */
+	public function add_label( $name, $path ) {
+
+		$data = array( 'path' => '/' . stripslashes( $name ) . '/' );
+
+		if ( ! empty( $path ) ) {
+			$data['path'] = $path . $data['path'];
+		}
+
+		return $this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/labels/' ), 'POST', $data );
+	}
+
+	/**
+	 * Deletes a Label in studio.
+	 *
+	 * @param array $labels An array of labels to delete.
+	 */
+	public function delete_label( $labels ) {
+		foreach ( $labels as $label ) {
+			$this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/labels/by_path/' . $label ), 'DELETE' );
+		}
+	}
+
+	/**
+	 * Updates a label in studio.
+	 *
+	 * @param string $name The label name.
+	 * @param string $path The label path.
+	 * @return mixed The request response.
+	 */
+	public function update_label( $name, $path ) {
+		$data = array( 'new_label' => $name );
+		return $this->send_request( esc_url_raw( self::CMS_BASE_URL . $this->get_account_id() . '/labels/by_path/' . $path ), 'PATCH', $data );
+	}
+
+	/**
+	 * Get a list of all In-Page Experiences
+	 *
+	 * Retrieves a list of all In-Page Experiences in the user's account
+	 *
+	 * @since 2.4.0
+	 *
+	 * @param string $query Keyword Search Query.
+	 * @return array|bool|mixed array of all playlists of false if failure
+	 */
+	public function in_page_experiences_list( $query = '' ) {
+
+		$url = self::CMS_BASE_URL . $this->get_account_id() . '/experiences';
+		if ( $query ) {
+			$url = add_query_arg( 'q', rawurlencode( $query ), $url );
+		}
+		$results = $this->send_request( esc_url_raw( $url ) );
+
+		if ( is_array( $results ) ) {
+
+			foreach ( $results as $index => $result ) {
+
+				// Note: the width and height parameters added here are currently unused.
+				$results[ $index ]['width']  = apply_filters( 'bv_playlist_default_width', 0 );
+				$results[ $index ]['height'] = apply_filters( 'bv_playlist_default_height', 0 );
+
+			}
+		}
+
+		return $results;
+
 	}
 }

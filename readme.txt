@@ -1,11 +1,11 @@
 === Brightcove Video Connect ===
 
-Contributors: 10up, collinsinternet, ivankk, technosailor, ChrisWiegman, tott, eduardmaghakyan, mattonomics, phoenixfireball, karinedo, foobuilder, helen, tlovett1, jonathantneal, brightcove, adamsilverstein, jonbellah, sudar, bctbaldwin
+Contributors: 10up, oscarssanchez, collinsinternet, ivankk, technosailor, ChrisWiegman, tott, eduardmaghakyan, mattonomics, phoenixfireball, karinedo, foobuilder, helen, tlovett1, jonathantneal, brightcove, adamsilverstein, jonbellah, sudar, bctbaldwin, rahmohn
 Donate link: https://supporters.eff.org/donate
 Tags: brightcove, 10up, videos, video
 Requires at least: 4.2
-Tested up to: 5.2
-Stable tag: 1.7.0
+Tested up to: 5.8
+Stable tag: 2.5.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,9 +18,162 @@ With this plugin, developed by 10up.com, you have the power to handle multiple a
 
 == Installation and Usage and FAQ ==
 
-For installation, usage, and Frequently Asked Question please see the [Brightcove Support Site](https://support.brightcove.com/getting-started-brightcove-video-connect-wordpress-cms).
+For installation, usage, and Frequently Asked Question please see the [Brightcove Support Site](https://integrations.support.brightcove.com/wordpress/getting-started-brightcove-video-connect-wordpress-cms.html).
+
+== Screenshots ==
+
+1. Settings page to add an account and set up the player width.
+2. Adding an account.
+3. Successfully adding an account.
+4. Listing the videos added to the selected account.
+5. Selecting a video to show the details on the sidebar.
+6. Videos' page to upload a new video.
+7. Editing an account.
+8. Video successfully uploaded to the Brightcove.
+9. Listing the playlists added to the selected account.
+10. Adding two Brightcove shortcodes to a post in the text mode.
+11. Showing two videos added to a post in the visual mode.
+12. Previewing a video.
+13. Showing a sample post with a video added.
+14. Selecting a playlist to show the details on the sidebar.
 
 == Changelog ==
+
+= 2.5.2 =
+
+Added
+* Update Multilingual metadata.
+
+= 2.5.1 =
+
+Added
+* Ability to display video URL in videos page.
+
+Fixed
+
+* Video and Playlist experiences displays wrong block settings.
+* Update attribute type from int to string.
+* Pass sizing attribute to determine if responsiveness should be enabled.
+* Fix broken Brightcove experiences embedding.
+
+= 2.5.0 =
+
+* Add:  State, Scheduled Start Date, and Scheduled End Date fields to the video edit screen.
+
+= 2.4.0 =
+
+* Add: In-Page Experiences.
+
+= 2.3.1 =
+
+Fixed
+* Label field on video editing.
+
+= 2.3.0 =
+
+Added
+* Settings sidebar to the Brightcove block. Props [@Rahmon](https://github.com/Rahmon), and [@oscarssanchez](https://github.com/oscarssanchez) via [#229](https://github.com/10up/brightcove-video-connect/pull/229).
+
+Security
+* Bump `path-parse` from 1.0.6 to 1.0.7. Props [@dependabot](https://github.com/dependabot) via [#222](https://github.com/10up/brightcove-video-connect/pull/222).
+* Bump `tar` from 6.1.5 to 6.1.11. Props [@dependabot](https://github.com/dependabot) via [#223](https://github.com/10up/brightcove-video-connect/pull/223).
+
+= 2.2.1 =
+
+Changed
+* Updated the screenshots.
+
+= 2.2.0 =
+
+Breaking Changes
+* BC_Utility API changed: See `set_cache_item` and `delete_cache_item` in `includes/class-bc-utility.php`.
+* BC_Utility API changed: Removed `remove_deleted_players` function.
+
+Fixed
+* Undefined index warnings. Props [@sanketio](https://github.com/sanketio) via [#197](https://github.com/10up/brightcove-video-connect/pull/197).
+* Typo for the `$allowedtags` global used in conjunction with wp_kses. Props [@theskinnyghost](https://github.com/theskinnyghost) via [#203](https://github.com/10up/brightcove-video-connect/pull/203).
+* Performance issue related with bc_transient_keys option. Props [@Rahmon](https://github.com/Rahmon) via [#215](https://github.com/10up/brightcove-video-connect/pull/215).
+* Playlist preview in the editor. Props [@Rahmon](https://github.com/Rahmon) via [#216](https://github.com/10up/brightcove-video-connect/pull/216).
+
+Security
+* Bump `hosted-git-info` from 2.8.8 to 2.8.9 (props [@dependabot](https://github.com/dependabot) via [#212](https://github.com/10up/brightcove-video-connect/pull/212))
+* Bump `normalize-url` from 4.5.0 to 4.5.1 (props [@dependabot](https://github.com/dependabot) via [#213](https://github.com/10up/brightcove-video-connect/pull/213))
+
+= 2.1.4 = 
+
+* Fix: Default Source field when is submitted unchecked.
+* Fix: Adjust the position of media details in the editing modal.
+* Fix: Clear filtered results when the input search is empty.
+* Fix: Add missing mute attribute in the block.
+
+= 2.1.3 =
+
+* Fix: Playlist player is not available.
+
+= 2.1.2 =
+
+* Fix: Default state filter: display filtered default on dropdown.
+* Fix: jQuery context deprecation.
+
+= 2.1.1 =
+
+* Fix: Fresh installation bugfix with labels.
+* Fix: PHPCS issues.
+
+= 2.1 =
+
+* Feature: Labels.
+* Feature: VIP error logging to NewRelic.
+* Changed to most recent logos.
+* Feature: Status filter.
+
+= 2.0 =
+
+* Feature: Multi language caption processing.
+* Feature: Active/Inactive videos filtering.
+
+= 1.9.2 =
+
+* Fix: Fatal error when credentials are revoked.
+* Add a notice when credentials are revoked, prompting user to update them.
+
+= 1.9.1 =
+
+* Fix: Bug in preview when switching from classic editor to Gutenberg.
+* Fix: Bug with editor capabilities.
+
+= 1.9.0 =
+
+* Picture in picture support.
+* Support to use reference id in videos.
+
+= 1.8.2 =
+
+* Fix: Upload new videos bug.
+
+= 1.8.1 =
+
+* Fix: Adding a new brightcove account bug
+
+= 1.8.0 =
+
+* Enhancement: Enable search on playlists. Props [turtlepod](https://github.com/turtlepod)
+* Enhancement: Adds a playsinline option for embeds.
+* Enhancement: Adds a new settings field to have a default player size width.
+* Fix: URL encoding uploads for files with foreign characters.
+* Fix: Player ordering to better resemble the order in Brightcove Studio.
+
+= 1.7.2 =
+
+* Fix: Increase padding on iframe.
+* Fix: Source account bug on upload page.
+* Fix: Stop showing inactive players in the plugin.
+
+= 1.7.1 =
+
+* Fix: Settings page not loading when plugin is network activated.
+* Fix: Adding multiple Gutenberg blocks to a post causes videos to sync video content.
+* Fix: PHP notice when information from Brightcove account not available.
 
 = 1.7.0 =
 
