@@ -11,7 +11,7 @@ class BC_Utility {
 	 */
 	public static function sanitize_and_generate_meta_video_id( $video_id ) {
 
-		return "ID_" . BC_Utility::sanitize_id( $video_id );
+		return 'ID_' . self::sanitize_id( $video_id );
 	}
 
 	public static function get_sanitized_video_id( $post_id ) {
@@ -41,13 +41,20 @@ class BC_Utility {
 	}
 
 	/**
+	 * Sanitize the ID.
+	 *
+	 * Allow for id's in the format ref: and if not in this format, make sure we don't allow any other than numeric.
+	 *
 	 * @param $numeric_string
 	 *
 	 * @return string containing integers only
 	 */
-	public static function sanitize_id( $numeric_string ) {
-
-		return is_string( $numeric_string ) ? sanitize_text_field( preg_replace( '/\D/', '', $numeric_string ) ) : "";
+	public static function sanitize_id( $id ) {
+		if ( 0 === strpos( $id, 'ref:' ) ) {
+			return $id;
+		} else {
+			return is_string( $id ) ? sanitize_text_field( preg_replace( '/\D/', '', $id ) ) : '';
+		}
 	}
 
 	/**
@@ -57,7 +64,7 @@ class BC_Utility {
 	 */
 	public static function sanitize_date( $date_string ) {
 
-		return is_string( $date_string ) ? sanitize_text_field( preg_replace( '/[^0-9-]/', '', $date_string ) ) : "";
+		return is_string( $date_string ) ? sanitize_text_field( preg_replace( '/[^0-9-]/', '', $date_string ) ) : '';
 	}
 
 	/**
@@ -70,7 +77,7 @@ class BC_Utility {
 	 */
 	public static function remove_pending_uploads( $video_id = null ) {
 
-		$video_id       = BC_Utility::sanitize_and_generate_meta_video_id( $video_id );
+		$video_id       = self::sanitize_and_generate_meta_video_id( $video_id );
 		$pending_videos = get_option( '_brightcove_pending_videos' );
 		$expire_time    = time() - 3600;
 
@@ -113,7 +120,7 @@ class BC_Utility {
 			'client_secret' => $account['client_secret'],
 		);
 
-		$hash = BC_Utility::get_hash_for_object( $account_triplet );
+		$hash = self::get_hash_for_object( $account_triplet );
 		$hash = substr( $hash, 0, 16 );
 
 		return $hash;
@@ -123,14 +130,14 @@ class BC_Utility {
 	 * Add pending video ID and uploaded filename to the _brightcove_pending_videos option
 	 *
 	 * @param        $video_id
-	 * @param string $filename
+	 * @param string   $filename
 	 *
 	 * @return boolean status of update_option
 	 */
 	public static function add_pending_upload( $video_id, $filename = '' ) {
 
-		$video_id = BC_Utility::sanitize_and_generate_meta_video_id( $video_id );
-		BC_Utility::remove_pending_uploads();
+		$video_id = self::sanitize_and_generate_meta_video_id( $video_id );
+		self::remove_pending_uploads();
 		$pending_videos              = get_option( '_brightcove_pending_videos', array() );
 		$pending_videos[ $video_id ] = array(
 			'filename' => $filename,
@@ -149,7 +156,7 @@ class BC_Utility {
 	 */
 	public static function get_hash_for_object( $object ) {
 
-		BC_Utility::recursive_object_sort( $object );
+		self::recursive_object_sort( $object );
 
 		return hash( 'sha256', wp_json_encode( $object ) );
 	}
@@ -163,7 +170,7 @@ class BC_Utility {
 	public static function store_hash( $type, $data, $account_id ) {
 
 		$key       = "_brightcove_hash_{$type}_{$account_id}";
-		$data_hash = BC_Utility::get_hash_for_object( $data );
+		$data_hash = self::get_hash_for_object( $data );
 
 		return update_option( $key, $data_hash );
 	}
@@ -177,7 +184,7 @@ class BC_Utility {
 
 		global $bc_accounts;
 
-		$player_id = BC_Utility::sanitize_player_id( $player_id );
+		$player_id = self::sanitize_player_id( $player_id );
 
 		return "_bc_player_{$player_id}_" . $bc_accounts->get_account_id();
 	}
@@ -191,7 +198,7 @@ class BC_Utility {
 	public static function hash_changed( $type, $data, $account_id ) {
 
 		$key           = "_brightcove_hash_{$type}_{$account_id}";
-		$data_hash     = BC_Utility::get_hash_for_object( $data );
+		$data_hash     = self::get_hash_for_object( $data );
 		$existing_hash = get_option( $key );
 
 		return $existing_hash !== $data_hash;
@@ -201,61 +208,15 @@ class BC_Utility {
 	public static function remove_all_media_objects_for_account_id( $account_id ) {
 
 		// Delete account players
-		$player_ids = get_option( '_bc_player_ids_' . BC_Utility::sanitize_id( $account_id ), array() );
+		$player_ids = get_option( '_bc_player_ids_' . self::sanitize_id( $account_id ), array() );
 
-		delete_option( '_bc_player_playlist_ids_' . BC_Utility::sanitize_id( $account_id ) );
-		delete_option( '_bc_player_ids_' . BC_Utility::sanitize_id( $account_id ) );
+		delete_option( '_bc_player_ids_' . self::sanitize_id( $account_id ) );
 		foreach ( $player_ids as $player_id ) {
-			delete_option( '_bc_player_' . BC_Utility::sanitize_player_id( $player_id ) . '_' . BC_Utility::sanitize_id( $account_id ) );
+			delete_option( '_bc_player_' . self::sanitize_player_id( $player_id ) . '_' . self::sanitize_id( $account_id ) );
 		}
-		delete_option( '_bc_player_default_' . BC_Utility::sanitize_id( $account_id ) );
+		delete_option( '_bc_player_default_' . self::sanitize_id( $account_id ) );
 
 		wp_reset_postdata();
-	}
-
-	/**
-	 * Function to delete players that are stored as an option.
-	 *
-	 * @param $ids_to_keep
-	 *
-	 * @return bool true if all options deleted, false on failure or non-existent player
-	 */
-	public static function remove_deleted_players( $ids_to_keep ) {
-
-		global $bc_accounts;
-		$all_ids_key = '_bc_player_ids_' . $bc_accounts->get_account_id();
-		$all_ids     = get_option( $all_ids_key );
-
-		$all_ids_playlists_key = '_bc_player_playlist_ids_' . $bc_accounts->get_account_id();
-		$all_ids_playlists     = get_option( $all_ids_playlists_key );
-
-		$return_state = true;
-
-		if ( is_array( $all_ids ) ) {
-			$ids_to_delete = array_diff( $all_ids, $ids_to_keep );
-
-			foreach ( $ids_to_delete as $id ) {
-				$key     = BC_Utility::get_player_key( $id );
-				$success = delete_option( $key );
-				if ( ! $success ) {
-					$return_state = false;
-				}
-			}
-
-		}
-
-		if ( is_array( $all_ids_playlists ) ) {
-			foreach ( $all_ids_playlists as $id ) {
-				if ( in_array( $id, $all_ids_playlists ) ) {
-					unset( $all_ids_playlists[ $id ] );
-				}
-			}
-		}
-
-		update_option( $all_ids_key, $ids_to_keep );
-		update_option( $all_ids_playlists_key, $all_ids_playlists );
-
-		return $return_state;
 	}
 
 	/**
@@ -272,7 +233,7 @@ class BC_Utility {
 		}
 		foreach ( $object as &$value ) {
 			if ( is_array( $value ) ) {
-				BC_Utility::recursive_object_sort( $value );
+				self::recursive_object_sort( $value );
 			}
 		}
 
@@ -297,8 +258,12 @@ class BC_Utility {
 
 		foreach ( $args as $index => $value ) {
 
+			if ( is_null( $value ) ) {
+				continue;
+			}
+
 			if ( is_array( $value ) ) {
-				$args[ $index ] = BC_Utility::sanitize_payload_args_recursive( $value );
+				$args[ $index ] = self::sanitize_payload_args_recursive( $value );
 			} else {
 				$args[ $index ] = utf8_uri_encode( sanitize_text_field( $value ) );
 			}
@@ -310,7 +275,7 @@ class BC_Utility {
 	public static function sanitize_payload_item( $item ) {
 
 		if ( is_array( $item ) ) {
-			return BC_Utility::sanitize_payload_args_recursive( $item );
+			return self::sanitize_payload_args_recursive( $item );
 		}
 
 		return utf8_uri_encode( sanitize_text_field( $item ) );
@@ -328,9 +293,9 @@ class BC_Utility {
 		if ( ! in_array( $type, array( 'videos', 'playlists' ) ) || ! $account_id || ! is_array( $media_dates ) ) {
 			return false;
 		}
-		$all_dates = BC_Utility::get_video_playlist_dates( $type );
+		$all_dates = self::get_video_playlist_dates( $type );
 		$key       = '_brightcove_dates_' . $type;
-		$id        = BC_Utility::sanitize_and_generate_meta_video_id( $account_id );
+		$id        = self::sanitize_and_generate_meta_video_id( $account_id );
 		if ( array_key_exists( $id, $all_dates ) && is_array( $all_dates[ $id ] ) ) {
 			// Check number of dates before we add these.
 			$date_count       = count( $all_dates[ $id ] );
@@ -362,7 +327,7 @@ class BC_Utility {
 		$all_dates = get_option( $key );
 		if ( is_array( $all_dates ) ) {
 			if ( $account_id ) {
-				$id = BC_Utility::sanitize_and_generate_meta_video_id( $account_id );
+				$id = self::sanitize_and_generate_meta_video_id( $account_id );
 				if ( isset( $all_dates[ $id ] ) ) {
 					return $all_dates[ $id ];
 				} else {
@@ -378,9 +343,9 @@ class BC_Utility {
 
 	public static function get_video_playlist_dates_for_display( $type ) {
 
-		$all_dates = BC_Utility::get_video_playlist_dates( $type );
+		$all_dates = self::get_video_playlist_dates( $type );
 		foreach ( $all_dates as $id => $dates_for_id ) {
-			$new_id         = $id === 'all' ? 'all' : BC_Utility::get_sanitized_video_id( $id ); // Strip ID_
+			$new_id         = $id === 'all' ? 'all' : self::get_sanitized_video_id( $id ); // Strip ID_
 			$labelled_dates = array();
 			foreach ( $dates_for_id as $yyyy_mm ) {
 				$date_object      = new DateTime( $yyyy_mm . '-01' );
@@ -452,7 +417,7 @@ class BC_Utility {
 
 	public static function admin_notice_messages( $notices ) {
 
-		global $allowed_tags;
+		global $allowedtags;
 
 		if ( empty( $notices ) ) {
 			return false;
@@ -461,7 +426,7 @@ class BC_Utility {
 		$html = '';
 		foreach ( $notices as $notice ) {
 			$html .= sprintf( '<div class="%1$s brightcove-settings-%1$s notice is-dismissible">', esc_attr( $notice['type'] ) );
-			$html .= sprintf( '<p>%s</p>', wp_kses( $notice['message'], $allowed_tags ) );
+			$html .= sprintf( '<p>%s</p>', wp_kses( $notice['message'], $allowedtags ) );
 			$html .= '</div>';
 		}
 
@@ -471,7 +436,7 @@ class BC_Utility {
 	public static function bc_plugin_action_links( $links ) {
 
 		$bc_settings_page = array(
-			'<a href="' . esc_url( admin_url( 'admin.php?page=brightcove-sources' ) ) . '">' . esc_html__( 'Settings', 'brightcove') . '</a>',
+			'<a href="' . esc_url( admin_url( 'admin.php?page=brightcove-sources' ) ) . '">' . esc_html__( 'Settings', 'brightcove' ) . '</a>',
 		);
 
 		return array_merge( $links, $bc_settings_page );
@@ -545,7 +510,7 @@ class BC_Utility {
 
 	public static function deactivate() {
 
-		require_once( BRIGHTCOVE_PATH . 'includes/class-bc-accounts.php' );
+		require_once BRIGHTCOVE_PATH . 'includes/class-bc-accounts.php';
 
 		$bc_accounts = new BC_Accounts();
 
@@ -557,7 +522,7 @@ class BC_Utility {
 
 			$account_hash = $bc_accounts->get_account_hash();
 
-			self::delete_cache_item( 'brightcove_oauth_access_token_' . $account_hash );
+			self::delete_cache_item( self::generate_transient_key( 'brightcove_oauth_access_token_', $account_hash ) );
 
 			$bc_accounts->restore_default_account();
 
@@ -582,12 +547,12 @@ class BC_Utility {
 		delete_option( '_brightcove_accounts' );
 		delete_option( '_brightcove_default_account' );
 
-		//Delete synced video data
+		// Delete synced video data
 		$wpdb->query( "DELETE FROM $wpdb->postmeta WHERE meta_key LIKE '_brightcove%';" );
 		$wpdb->query( "DELETE FROM $wpdb->posts WHERE post_type = 'brightcove-playlist';" );
 		$wpdb->query( "DELETE FROM $wpdb->posts WHERE post_type = 'brightcove-video';" );
 
-		//Delete variable options
+		// Delete variable options
 		$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE '_brightcove%';" );
 		$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE '_bc_player%';" );
 		$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE '_notifications_subscribed_%';" );
@@ -615,6 +580,38 @@ class BC_Utility {
 	}
 
 	/**
+	 * Generate a transient key
+	 *
+	 * @param string $name Key name
+	 * @param string $unique_identifier An optional unique identifier to append to the name
+	 * @return string
+	 */
+	public static function generate_transient_key( $name, $unique_identifier = false ) {
+
+		$transient_key     = '';
+		$transient_version = get_transient( 'bc_transient_version' );
+
+		if ( false === $transient_version ) {
+			$transient_version = 1;
+			set_transient( 'bc_transient_version', $transient_version );
+		}
+
+		if ( is_string( $name ) && ! empty( $name ) ) {
+			$transient_key = $name;
+		}
+
+		if ( is_string( $unique_identifier ) && ! empty( $unique_identifier ) ) {
+			$transient_key .= $unique_identifier;
+		}
+
+		if ( ! empty( $transient_key ) ) {
+			$transient_key = substr( $transient_key, 0, 42 ) . '_v' . $transient_version;
+		}
+
+		return $transient_key;
+	}
+
+	/**
 	 * Store cache item
 	 *
 	 * Stores an item to transient cache for later use.
@@ -626,7 +623,7 @@ class BC_Utility {
 	 *
 	 * @since 1.1.1
 	 *
-	 * @return int 1 on success, 0 on failure or -1 if key is already cached
+	 * @return bool True if the value was set, false otherwise.
 	 */
 	public static function set_cache_item( $key, $type, $value, $expiration = 600 ) {
 
@@ -639,28 +636,13 @@ class BC_Utility {
 		$type       = sanitize_text_field( $type );
 		$expiration = absint( $expiration );
 
-		$transient_keys = self::list_cache_items();
+		$transient_value = get_transient( $key );
 
-		if ( in_array( $key, $transient_keys ) && get_transient( $key ) ) {
-			return - 1; // Key already cached.
+		if ( false === $transient_value ) {
+			return set_transient( $key, $value, $expiration );
 		}
 
-		if ( set_transient( sanitize_key( $key ), $value, $expiration ) ) {
-
-			$transient_keys[ sanitize_key( $key ) ] = sanitize_text_field( $type );
-
-		} else { // For some reason we couldn't save the transient
-
-			return 0;
-
-		}
-
-		if ( update_option( 'bc_transient_keys', $transient_keys, false ) ) {
-			return 1; // Key saved to Brightcove registry.
-		}
-
-		return 0;
-
+		return true; // already cached
 	}
 
 	/**
@@ -671,68 +653,28 @@ class BC_Utility {
 	 * @since 1.1.1
 	 *
 	 * @param string $key  The cache key or * for all.
-	 * @param string $type The type of cache key (for group cleanup).
 	 *
 	 * @return bool True on success or false.
 	 */
-	public static function delete_cache_item( $key = '', $type = '' ) {
+	public static function delete_cache_item( $key = '' ) {
 
 		// Check that valid item was given.
-		if ( '' === $key && '' === $type ) {
+		if ( '' === $key ) {
 			return false;
 		}
 
-		$transient_keys = self::list_cache_items();
-		$transients     = array();
-
 		if ( '*' === $key ) { // Clear all saved cache items.
 
-			foreach ( $transient_keys as $transient_key => $transient_value ) {
-				delete_transient( $transient_key );
+			$transient_version = (int) get_transient( 'bc_transient_version' );
+
+			if ( $transient_version ) {
+				return set_transient( 'bc_transient_version', $transient_version + 1 );
+			} else {
+				return delete_transient( 'bc_transient_version' );
 			}
-
-			delete_option( 'bc_transient_keys' );
-
-		} else { // Only clear specified items.
-
-			if ( ! $transient_keys || ! is_array( $transient_keys ) ) {
-				return false;
-			}
-
-			// If a specific key is set arrange it for clearing.
-			if ( '' !== $key ) {
-
-				$key = sanitize_key( $key );
-
-				if ( ! array_search( $key, $transient_keys ) ) {
-					return false;
-				}
-
-				unset( $transient_keys[ $key ] );
-				$transients[] = $key;
-
-			}
-
-			// If type is set clear by type.
-			if ( '' !== $type ) {
-
-				$type = sanitize_text_field( $type );
-
-				foreach ( $transient_keys as $transient_key => $transient_type ) {
-
-					if ( $type === $transient_type ) {
-						$transients[] = $transient_key;
-					}
-				}
-			}
-
-			foreach ( $transients as $key ) {
-				delete_transient( $key );
-			}
-
+		} else {
+			return delete_transient( sanitize_key( $key ) );
 		}
-
-		return update_option( 'bc_transient_keys', $transient_keys, false );
 
 	}
 
@@ -757,16 +699,6 @@ class BC_Utility {
 		$key = sanitize_key( $key );
 
 		$transient = get_transient( $key );
-
-		if ( false === $transient ) { // Delete if from the list if the transient has expired.
-
-			$transient_keys = self::list_cache_items();
-
-			unset( $transient_keys[ $key ] );
-
-			update_option( 'bc_transient_keys', $transient_keys, false );
-
-		}
 
 		return $transient;
 
@@ -803,15 +735,15 @@ class BC_Utility {
 	public static function get_experience_player( $atts ) {
 		global $wp_version;
 
-		$account_id    = BC_Utility::sanitize_id( $atts['account_id'] );
-		$experience_id = BC_Utility::sanitize_player_id( $atts['experience_id'] );
+		$account_id    = self::sanitize_id( $atts['account_id'] );
+		$experience_id = self::sanitize_player_id( $atts['experience_id'] );
 		$height        = sanitize_text_field( $atts['height'] );
 		$width         = sanitize_text_field( $atts['width'] );
 		$min_width     = sanitize_text_field( $atts['min_width'] );
 		$max_width     = sanitize_text_field( $atts['max_width'] );
 		$embed         = sanitize_text_field( $atts['embed'] );
 
-		$video_ids = '';
+		$video_ids   = '';
 		$playlist_id = '';
 		if ( isset( $atts['video_ids'] ) ) {
 			$video_ids = sanitize_text_field( $atts['video_ids'] );
@@ -819,9 +751,9 @@ class BC_Utility {
 			$url_attr  = 'videoIds=' . esc_attr( $video_ids );
 		} else {
 			$atts['playlist_id'] = isset( $atts['playlist_id'] ) ? $atts['playlist_id'] : '';
-			$playlist_id = sanitize_text_field( $atts['playlist_id'] );
-			$js_attr     = 'data-playlist-id="' . esc_attr( $playlist_id ) . '"';
-			$url_attr    = 'playlistId=' . esc_attr( $playlist_id );
+			$playlist_id         = sanitize_text_field( $atts['playlist_id'] );
+			$js_attr             = 'data-playlist-id="' . esc_attr( $playlist_id ) . '"';
+			$url_attr            = 'playlistId=' . esc_attr( $playlist_id );
 		}
 
 		ob_start();
@@ -833,12 +765,12 @@ class BC_Utility {
 			$js_src = 'https://players.brightcove.net/' . $account_id . '/experience_' . $experience_id . '/live.js';
 			?>
 			<div data-experience="<?php echo esc_attr( $experience_id ); ?>"
-				<?php echo $js_attr; // XSS ok. ?> data-usage="cms:wordpress:<?php echo esc_attr( $wp_version ); ?>:<?php echo esc_attr( BRIGHTCOVE_VERSION ); ?>:experiencejavascript" style="display: block; position: relative; min-width: <?php echo esc_attr( $min_width ); ?> max-width: <?php echo esc_attr( $max_width ); ?>; width: <?php echo esc_attr( $width ); ?>; height: <?php echo esc_attr( $height ); ?>;">
+				<?php echo $js_attr; // XSS ok. ?> data-usage="cms:WordPress:<?php echo esc_attr( $wp_version ); ?>:<?php echo esc_attr( BRIGHTCOVE_VERSION ); ?>:experiencejavascript" style="display: block; position: relative; min-width: <?php echo esc_attr( $min_width ); ?> max-width: <?php echo esc_attr( $max_width ); ?>; width: <?php echo esc_attr( $width ); ?>; height: <?php echo esc_attr( $height ); ?>;">
 			</div>
 			<script src="<?php echo esc_url( $js_src ); ?>"></script>
-		<?php
+			<?php
 		else :
-			$iframe_src = 'https://players.brightcove.net/' . $account_id . '/experience_' . $experience_id . '/index.html?cms:wordpress:' . $wp_version . ':' . BRIGHTCOVE_VERSION . ':experienceiframe&' . $url_attr;
+			$iframe_src = 'https://players.brightcove.net/' . $account_id . '/experience_' . $experience_id . '/index.html?cms:WordPress:' . $wp_version . ':' . BRIGHTCOVE_VERSION . ':experienceiframe&' . $url_attr;
 			?>
 
 			<div style="display: block; position: relative; width: <?php echo esc_attr( $width ); ?>; height: <?php echo esc_attr( $height ); ?>;">
@@ -885,17 +817,19 @@ class BC_Utility {
 	 * @return string The HTML code for the player
 	 */
 	public static function get_video_player( $atts ) {
-		$account_id  = BC_Utility::sanitize_id( $atts['account_id'] );
-		$player_id   = BC_Utility::sanitize_player_id( $atts['player_id'] );
-		$id          = BC_Utility::sanitize_id( $atts['video_id'] );
+		$account_id  = self::sanitize_id( $atts['account_id'] );
+		$player_id   = self::sanitize_player_id( $atts['player_id'] );
+		$id          = self::sanitize_id( $atts['video_id'] );
 		$height      = sanitize_text_field( $atts['height'] );
 		$width       = sanitize_text_field( $atts['width'] );
+		$sizing      = sanitize_text_field( $atts['sizing'] );
 		$min_width   = sanitize_text_field( $atts['min_width'] );
 		$max_width   = sanitize_text_field( $atts['max_width'] );
 		$padding_top = sanitize_text_field( $atts['padding_top'] );
 		$autoplay    = ( 'autoplay' === $atts['autoplay'] ) ? 'autoplay' : '';
-		$mute    = ( 'muted' === $atts['mute'] ) ? 'muted' : '';
+		$mute        = ( 'muted' === $atts['mute'] ) ? 'muted' : '';
 		$embed       = sanitize_text_field( $atts['embed'] );
+		$playsinline = ( 'playsinline' === $atts['playsinline'] ) ? 'playsinline' : '';
 
 		ob_start();
 		?>
@@ -904,7 +838,24 @@ class BC_Utility {
 		<?php
 		if ( 'in-page' === $embed ) :
 			$js_src = 'https://players.brightcove.net/' . $account_id . '/' . $player_id . '_default/index.min.js';
-			?>
+			if ( 'pictureinpicture' === $atts['picture_in_picture'] ) :
+				?>
+				<div style="max-width: <?php echo esc_attr( $width ); ?>;">
+					<div class="vjs-pip-container">
+						<video-js
+								data-video-id="<?php echo esc_attr( $id ); ?>" data-account="<?php echo esc_attr( $account_id ); ?>"
+								data-player="<?php echo esc_attr( $player_id ); ?>"
+								data-usage="<?php echo esc_attr( self::get_usage_data() ); ?>javascript"
+								data-embed="default"
+								class="vjs-fluid"
+								controls <?php echo esc_attr( $playsinline ); ?> <?php echo esc_attr( $autoplay ); ?> <?php echo esc_attr( $mute ); ?>>
+						</video-js>
+					</div>
+				</div>
+				<script src="<?php echo esc_url( $js_src ); ?>"></script>
+				<?php
+			else :
+				?>
 			<div style="display: block; position: relative; min-width: <?php echo esc_attr( $min_width ); ?>; max-width: <?php echo esc_attr( $max_width ); ?>;">
 				<div style="padding-top: <?php echo esc_attr( $padding_top ); ?>; ">
 					<video
@@ -912,24 +863,28 @@ class BC_Utility {
 							data-player="<?php echo esc_attr( $player_id ); ?>"
 							data-usage="<?php echo esc_attr( self::get_usage_data() ); ?>javascript"
 							data-embed="default" class="video-js"
-							controls <?php echo esc_attr( $autoplay ); ?> <?php echo esc_attr( $mute ); ?>
-							style="width: <?php echo esc_attr( $width ); ?>; height: <?php echo esc_attr( $height ); ?>; position: absolute; top: 0; bottom: 0; right: 0; left: 0;">
+							controls <?php echo esc_attr( $playsinline ); ?> <?php echo esc_attr( $autoplay ); ?> <?php echo esc_attr( $mute ); ?>
+							style="width: <?php echo 'responsive' !== $sizing ? esc_attr( $width ) : '100%'; ?>; height: <?php echo esc_attr( $height ); ?>; position: absolute; top: 0; bottom: 0; right: 0; left: 0;">
 					</video>
 
 					<script src="<?php echo esc_url( $js_src ); ?>"></script>
 				</div>
 			</div>
 
-		<?php elseif ( 'iframe' === $embed ) : ?>
-			<?php
-			if ( ! empty( $autoplay ) ) {
-				$autoplay = '&' . $autoplay;
-			}
-			if ( ! empty( $mute ) ) {
-				$mute = '&' . $mute;
-			}
-			$iframe_src = 'https://players.brightcove.net/' . $account_id . '/' . $player_id . '_default/index.html?videoId=' . $id . '&usage=' . self::get_usage_data() . 'iframe' . $autoplay . $mute;
-			?>
+				<?php
+		endif;
+
+			elseif ( 'iframe' === $embed ) :
+				?>
+				<?php
+				if ( ! empty( $autoplay ) ) {
+					$autoplay = '&' . $autoplay;
+				}
+				if ( ! empty( $mute ) ) {
+					$mute = '&' . $mute;
+				}
+				$iframe_src = 'https://players.brightcove.net/' . $account_id . '/' . $player_id . '_default/index.html?videoId=' . $id . '&usage=' . self::get_usage_data() . 'iframe' . $autoplay . $mute;
+				?>
 
 			<div style="display: block; position: relative; min-width: <?php echo esc_attr( $min_width ); ?>; max-width: <?php echo esc_attr( $max_width ); ?>;">
 				<div style="padding-top: <?php echo esc_attr( $padding_top ); ?>; ">
@@ -938,7 +893,7 @@ class BC_Utility {
 							allowfullscreen
 							webkitallowfullscreen
 							mozallowfullscreen
-							style="width: <?php echo esc_attr( $width ); ?>; height: <?php echo esc_attr( $height ); ?>; position: absolute; top: 0; bottom: 0; right: 0; left: 0;">
+                            style="width: <?php echo 'responsive' !== $sizing ? esc_attr( $width ) : '100%'; ?>; height: <?php echo esc_attr( $height ); ?>; position: absolute; top: 0; bottom: 0; right: 0; left: 0;">
 					</iframe>
 				</div>
 			</div>
@@ -996,22 +951,24 @@ class BC_Utility {
 	 *
 	 * @since 1.4
 	 *
-	 * @param array  $atts The shortcode attributes.
+	 * @param array $atts The shortcode attributes.
 	 *
 	 * @return string The HTML code for the player
 	 */
 	public static function get_playlist_player( $atts ) {
-		$account_id  = BC_Utility::sanitize_id( $atts['account_id'] );
-		$player_id   = BC_Utility::sanitize_player_id( $atts['player_id'] );
-		$id          = BC_Utility::sanitize_id( $atts['playlist_id'] );
+		$account_id  = self::sanitize_id( $atts['account_id'] );
+		$player_id   = self::sanitize_player_id( $atts['player_id'] );
+		$id          = self::sanitize_id( $atts['playlist_id'] );
 		$height      = sanitize_text_field( $atts['height'] );
 		$width       = sanitize_text_field( $atts['width'] );
+		$sizing      = sanitize_text_field( $atts['sizing'] );
 		$min_width   = sanitize_text_field( $atts['min_width'] );
 		$max_width   = sanitize_text_field( $atts['max_width'] );
 		$padding_top = sanitize_text_field( $atts['padding_top'] );
 		$autoplay    = ( 'autoplay' === $atts['autoplay'] ) ? 'autoplay' : '';
-		$mute    = ( 'muted' === $atts['mute'] ) ? 'muted' : '';
+		$mute        = ( 'muted' === $atts['mute'] ) ? 'muted' : '';
 		$embed       = sanitize_text_field( $atts['embed'] );
+		$playsinline = ( 'playsinline' === $atts['playsinline'] ) ? 'playsinline' : '';
 
 		if ( 'default' === $player_id ) {
 
@@ -1081,7 +1038,7 @@ class BC_Utility {
 						data-application-id
 						data-usage="<?php echo esc_attr( self::get_usage_data() ); ?>javascript"
 						class="video-js"
-						controls <?php echo esc_attr( $autoplay ); ?> <?php echo esc_attr( $mute ); ?>>
+						controls <?php echo esc_attr( $playsinline ); ?> <?php echo esc_attr( $autoplay ); ?> <?php echo esc_attr( $mute ); ?>>
 				</video>
 				<script src="//players.brightcove.net/<?php echo esc_attr( $account_id ); ?>/<?php echo esc_attr( $player_id ); ?>_default/index.min.js"></script>
 				<div class="playlist-wrapper">
@@ -1161,7 +1118,7 @@ class BC_Utility {
 							allowfullscreen
 							webkitallowfullscreen
 							mozallowfullscreen
-							style="width: <?php echo esc_attr( $width ); ?>; height: <?php echo esc_attr( $height ); ?>; position: absolute; top: 0; bottom: 0; right: 0; left: 0;">
+							style="width: <?php echo 'responsive' !== $sizing ? esc_attr( $width ) : '100%'; ?>; height: <?php echo esc_attr( $height ); ?>; position: absolute; top: 0; bottom: 0; right: 0; left: 0;">
 					</iframe>
 				</div>
 			</div>
@@ -1220,7 +1177,7 @@ class BC_Utility {
 	public static function get_usage_data() {
 		global $wp_version;
 
-		return 'cms:wordpress:' . $wp_version . ':' . BRIGHTCOVE_VERSION . ':';
+		return 'cms:WordPress:' . $wp_version . ':' . BRIGHTCOVE_VERSION . ':';
 	}
 
 	/**
@@ -1413,5 +1370,17 @@ class BC_Utility {
 		);
 
 		return $languages;
+	}
+
+	/**
+	 * Compares player update date. Used for sorting purposes.
+	 *
+	 * @param $player1 @var wpbc object player data
+	 * @param $player2 @var wpbc object player data
+	 *
+	 * @return int
+	 */
+	public static function compare_player_update_date( $player1, $player2 ) {
+		return strtotime( $player1['branches']['master']['updated_at'] ) < strtotime( $player2['branches']['master']['updated_at'] ) ? 1 : -1;
 	}
 }
